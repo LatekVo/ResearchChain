@@ -40,9 +40,8 @@ def rag_query_lookup(prompt_text: str) -> str:
     pass
 
 
-def populate_db_with_google_search(database: FAISS, query: WebQuery):
+def query_for_urls(query: WebQuery):
     print(f"{Fore.CYAN}{Style.BRIGHT}Searching for:{Style.RESET_ALL}", query.web_query)
-
     url_list = search(
         query=query.web_query,
         stop=EMBEDDINGS_ARTICLE_LIMIT,
@@ -50,21 +49,26 @@ def populate_db_with_google_search(database: FAISS, query: WebQuery):
         safe='off',
         tbs=query.web_tbs,
         extra_params=query.web_extra_params)
-
     print(f"{Fore.CYAN}Web search completed.{Fore.RESET}")
+    return url_list
+
+
+def download_article(url):
+    url_handle = WebBaseLoader(url)
+    try:
+        # fixme: certain sites load forever, soft-locking this loop (prompt example: car)
+        document = url_handle.load()
+    except requests.exceptions.ConnectionError:
+        return None
+    return document
+
+
+def populate_db_with_google_search(database: FAISS, query: WebQuery):
+    url_list = query_for_urls(query)
 
     for url in url_list:
-        url_handle = WebBaseLoader(url)
+        document = download_article(url)
 
-        # try downloading web content
-        try:
-            # fixme: certain sites load forever, soft-locking this loop (prompt example: car)
-            document = url_handle.load()
-        except requests.exceptions.ConnectionError:
-            continue
-
-        if document is None:
-            continue
 
         text_splitter = RecursiveCharacterTextSplitter(
             separators=EMBEDDINGS_BUFFER_STOPS,

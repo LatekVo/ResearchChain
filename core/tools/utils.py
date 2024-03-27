@@ -1,5 +1,8 @@
 import asyncio
 import multiprocessing
+import re
+import uuid
+
 
 def purify_name(name):
     return '_'.join('_'.join(name.split(':')).split('-'))
@@ -39,7 +42,7 @@ def remove(text: str, wordlist: list):
 
 
 def timeout_function(task, timeout=2.0):
-    # todo: add arg support
+    # FIXME: THIS FUNCTION MAY BE BROKEN, TEST THIS
 
     ctx = multiprocessing.get_context('spawn')
     q = ctx.Queue()
@@ -65,3 +68,11 @@ def timeout_function(task, timeout=2.0):
     thread_loop.close()
 
     return result
+
+
+def extract_links(text: str):
+    return re.findall(r'(https?://\S+)', text)
+
+
+def gen_uuid() -> str:
+    return uuid.uuid4().hex
